@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/google/go-cmp/cmp"
@@ -51,6 +52,7 @@ func TestStore(t *testing.T) {
 	defer s.cleanup(name)
 
 	session.Values["testkey"] = "testvalue"
+	session.Values["expire"] = int(time.Now().Unix())
 
 	rr := httptest.NewRecorder()
 	if err := s.Save(r, rr, session); err != nil {

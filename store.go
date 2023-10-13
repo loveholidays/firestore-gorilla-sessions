@@ -15,7 +15,7 @@
 // Package firestoregorilla is a Firestore-backed sessions store, which can be
 // used with gorilla/sessions.
 //
-// Encoded sessions are stored in Firestore
+// # Encoded sessions are stored in Firestore
 //
 // Sessions never expire and are never deleted or cleaned up.
 package firestoregorilla
@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/gorilla/sessions"
@@ -47,6 +48,12 @@ var _ sessions.Store = &Store{}
 // document.
 type sessionDoc struct {
 	EncodedSession string
+	Expire         time.Time
+}
+
+type sessionDocValue struct {
+	data   map[interface{}]interface{}
+	expire int
 }
 
 // New creates a new Store.
@@ -127,7 +134,22 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 	if err != nil {
 		return err
 	}
-	encoded := sessionDoc{EncodedSession: sessionString}
+
+	expire := 0
+	for _, value := range session.Values {
+		switch v := value.(type) {
+		case int:
+			expire = v
+		}
+	}
+
+	encoded := sessionDoc{
+		EncodedSession: sessionString,
+	}
+
+	if expire != 0 {
+		encoded.Expire = time.Unix(int64(expire), 10)
+	}
 
 	if _, err := s.client.Collection(session.Name()).Doc(id).Set(r.Context(), encoded); err != nil {
 		return fmt.Errorf("Create: %v", err)
