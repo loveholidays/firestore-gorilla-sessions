@@ -150,12 +150,11 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 		EncodedSession: sessionString,
 	}
 
-	rawBookingIDs, ok := session.Values["bookingIds"]
-	if ok { // booking IDs is optional
-		bookingIDs, ok := rawBookingIDs.([]string)
-		if !ok {
-			return errors.New("provided booking IDs is not a string slice")
-		}
+	bookingIDs, err := extractBookingIDs(session)
+	if err != nil {
+		return err
+	}
+	if len(bookingIDs) > 0 {
 		encoded.BookingIDs = bookingIDs
 	}
 
@@ -177,6 +176,19 @@ func (s *Store) readIDFromHeader(r *http.Request, name string) (string, error) {
 		return "", fmt.Errorf("Header not present: %s", name)
 	}
 	return c, nil
+}
+
+// extractBookingIDs returns any booking IDs. Errors if booking IDs are provided but not as the correct type.
+func extractBookingIDs(session *sessions.Session) ([]string, error) {
+	rawBookingIDs, ok := session.Values["bookingIds"]
+	if ok {
+		bookingIDs, ok := rawBookingIDs.([]string)
+		if !ok {
+			return nil, errors.New("provided booking IDs is not a string slice")
+		}
+		return bookingIDs, nil
+	}
+	return nil, nil
 }
 
 // jsonSession is an encoding/json compatible version of sessions.Session.
