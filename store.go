@@ -23,6 +23,7 @@ package firestoregorilla
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -147,8 +148,14 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 
 	encoded := sessionDoc{
 		EncodedSession: sessionString,
-		BookingIDs:     session.Values["bookingIds"].([]string), // TODO: avoid typecast
 	}
+
+	rawBookingIDs, _ := session.Values["bookingIds"] // bookingIds is optional, ok if it isn't present
+	bookingIDs, ok := rawBookingIDs.([]string)
+	if !ok {
+		return errors.New("provided booking IDs is not a string slice")
+	}
+	encoded.BookingIDs = bookingIDs
 
 	if expire != 0 {
 		encoded.Expire = time.Unix(int64(expire), 10)
