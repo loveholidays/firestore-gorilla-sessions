@@ -49,11 +49,13 @@ var _ sessions.Store = &Store{}
 type sessionDoc struct {
 	EncodedSession string
 	Expire         time.Time
+	BookingIDs     []string
 }
 
 type sessionDocValue struct {
-	data   map[interface{}]interface{}
-	expire int
+	data       map[interface{}]interface{}
+	expire     int
+	bookingIDs []string
 }
 
 // New creates a new Store.
