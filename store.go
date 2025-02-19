@@ -150,12 +150,14 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 		EncodedSession: sessionString,
 	}
 
-	rawBookingIDs, _ := session.Values["bookingIds"] // bookingIds is optional, ok if it isn't present
-	bookingIDs, ok := rawBookingIDs.([]string)
-	if !ok {
-		return errors.New("provided booking IDs is not a string slice")
+	rawBookingIDs, ok := session.Values["bookingIds"]
+	if ok { // booking IDs is optional
+		bookingIDs, ok := rawBookingIDs.([]string)
+		if !ok {
+			return errors.New("provided booking IDs is not a string slice")
+		}
+		encoded.BookingIDs = bookingIDs
 	}
-	encoded.BookingIDs = bookingIDs
 
 	if expire != 0 {
 		encoded.Expire = time.Unix(int64(expire), 10)
