@@ -147,6 +147,7 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 
 	encoded := sessionDoc{
 		EncodedSession: sessionString,
+		BookingIDs:     session.Values["bookingIds"].([]string), // TODO: avoid typecast
 	}
 
 	if expire != 0 {
