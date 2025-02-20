@@ -129,7 +129,7 @@ func TestMaxLength(t *testing.T) {
 	// Confirm the error was about the max length, not something else like gob
 	// encoding.
 	if want := "max length"; !strings.Contains(err.Error(), want) {
-		t.Errorf("serialize(bigSession) got err %q, want to contain %q", err.Error(), want)
+		t.Errorf("serialize(bigSession) got retErr %q, want to contain %q", err.Error(), want)
 	}
 }
 
@@ -151,21 +151,53 @@ func (s *Store) cleanup(name string) {
 
 func Test_extractBookingIDs(t *testing.T) {
 	for _, tt := range []struct {
-		name       string
-		session    *sessions.Session
-		bookingIDs BookingIDs
-		err        bool
+		name          string
+		session       *sessions.Session
+		retBookingIDs BookingIDs
+		retErr        bool
 	}{
 		{
 			name:    "nil session",
 			session: nil,
-			err:     true,
+			retErr:  true,
+		},
+		{
+			name: "no bookings IDs returns nil",
+			session: &sessions.Session{
+				ID: "some-session-id",
+				Values: map[interface{}]interface{}{
+					"data": "some-data",
+				},
+			},
+			retBookingIDs: nil,
+		},
+		{
+			name: "bookings IDs returned",
+			session: &sessions.Session{
+				ID: "some-session-id",
+				Values: map[interface{}]interface{}{
+					"data":       "some-data",
+					"bookingIds": BookingIDs{"123456", "789012"},
+				},
+			},
+			retBookingIDs: BookingIDs{"123456", "789012"},
+		},
+		{
+			name: "error if booking IDs incorrect type",
+			session: &sessions.Session{
+				ID: "some-session-id",
+				Values: map[interface{}]interface{}{
+					"data":       "some-data",
+					"bookingIds": 123456,
+				},
+			},
+			retErr: true,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			bookingIDs, err := extractBookingIDs(tt.session)
-			require.Equal(t, bookingIDs, tt.bookingIDs)
-			if tt.err {
+			require.Equal(t, bookingIDs, tt.retBookingIDs)
+			if tt.retErr {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
