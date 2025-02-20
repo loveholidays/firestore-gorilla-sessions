@@ -16,8 +16,6 @@ package firestoregorilla
 
 import (
 	"context"
-	"github.com/gorilla/sessions"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -27,6 +25,8 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/google/go-cmp/cmp"
+	"github.com/gorilla/sessions"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/api/iterator"
 )
 
