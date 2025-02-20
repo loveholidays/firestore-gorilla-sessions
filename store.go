@@ -47,13 +47,18 @@ var _ sessions.Store = &Store{}
 
 type BookingIDs = []string
 
-// sessionDoc wraps an encoded session so it can be saved as a Firestore
 // document.
 type sessionDoc struct {
 	EncodedSession string
 	Expire         time.Time
 	BookingIDs
 }
+
+const (
+	ValuesKeyData       = "data"
+	ValuesKeyExpire     = "expire"
+	ValuesKeyBookingIDs = "bookingIds"
+)
 
 // New creates a new Store.
 //
@@ -179,7 +184,7 @@ func extractBookingIDs(session *sessions.Session) (BookingIDs, error) {
 	if session == nil {
 		return nil, errors.New("session is nil")
 	}
-	rawBookingIDs, ok := session.Values["bookingIds"]
+	rawBookingIDs, ok := session.Values[ValuesKeyBookingIDs]
 	if ok {
 		bookingIDs, ok := rawBookingIDs.(BookingIDs)
 		if !ok {

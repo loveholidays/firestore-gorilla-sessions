@@ -166,7 +166,7 @@ func Test_extractBookingIDs(t *testing.T) {
 			session: &sessions.Session{
 				ID: "some-session-id",
 				Values: map[interface{}]interface{}{
-					"data": "some-data",
+					ValuesKeyData: "some-data",
 				},
 			},
 			retBookingIDs: nil,
@@ -176,8 +176,8 @@ func Test_extractBookingIDs(t *testing.T) {
 			session: &sessions.Session{
 				ID: "some-session-id",
 				Values: map[interface{}]interface{}{
-					"data":       "some-data",
-					"bookingIds": BookingIDs{"123456", "789012"},
+					ValuesKeyData:       "some-data",
+					ValuesKeyBookingIDs: BookingIDs{"123456", "789012"},
 				},
 			},
 			retBookingIDs: BookingIDs{"123456", "789012"},
@@ -187,8 +187,8 @@ func Test_extractBookingIDs(t *testing.T) {
 			session: &sessions.Session{
 				ID: "some-session-id",
 				Values: map[interface{}]interface{}{
-					"data":       "some-data",
-					"bookingIds": 123456,
+					ValuesKeyData:       "some-data",
+					ValuesKeyBookingIDs: 123456,
 				},
 			},
 			retErr: true,
