@@ -148,7 +148,7 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 	if err != nil {
 		return err
 	}
-	if len(bookingIDs) > 0 {
+	if bookingIDs != nil {
 		encoded.BookingIDs = bookingIDs
 	}
 

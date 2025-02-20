@@ -172,6 +172,17 @@ func Test_extractBookingIDs(t *testing.T) {
 			retBookingIDs: nil,
 		},
 		{
+			name: "empty booking IDs slice is allowed",
+			session: &sessions.Session{
+				ID: "some-session-id",
+				Values: map[interface{}]interface{}{
+					"data":       "some-data",
+					"bookingIds": []string{},
+				},
+			},
+			retBookingIDs: []string{},
+		},
+		{
 			name: "bookings IDs returned",
 			session: &sessions.Session{
 				ID: "some-session-id",
