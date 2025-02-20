@@ -153,7 +153,7 @@ func Test_extractBookingIDs(t *testing.T) {
 	for _, tt := range []struct {
 		name          string
 		session       *sessions.Session
-		retBookingIDs BookingIDs
+		retBookingIDs []string
 		retErr        bool
 	}{
 		{
@@ -166,7 +166,7 @@ func Test_extractBookingIDs(t *testing.T) {
 			session: &sessions.Session{
 				ID: "some-session-id",
 				Values: map[interface{}]interface{}{
-					ValuesKeyData: "some-data",
+					"data": "some-data",
 				},
 			},
 			retBookingIDs: nil,
@@ -176,19 +176,19 @@ func Test_extractBookingIDs(t *testing.T) {
 			session: &sessions.Session{
 				ID: "some-session-id",
 				Values: map[interface{}]interface{}{
-					ValuesKeyData:       "some-data",
-					ValuesKeyBookingIDs: BookingIDs{"123456", "789012"},
+					"data":       "some-data",
+					"bookingIds": []string{"123456", "789012"},
 				},
 			},
-			retBookingIDs: BookingIDs{"123456", "789012"},
+			retBookingIDs: []string{"123456", "789012"},
 		},
 		{
 			name: "error if booking IDs incorrect type",
 			session: &sessions.Session{
 				ID: "some-session-id",
 				Values: map[interface{}]interface{}{
-					ValuesKeyData:       "some-data",
-					ValuesKeyBookingIDs: 123456,
+					"data":       "some-data",
+					"bookingIds": 123456,
 				},
 			},
 			retErr: true,
