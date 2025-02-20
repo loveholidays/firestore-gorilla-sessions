@@ -129,7 +129,7 @@ func TestMaxLength(t *testing.T) {
 	// Confirm the error was about the max length, not something else like gob
 	// encoding.
 	if want := "max length"; !strings.Contains(err.Error(), want) {
-		t.Errorf("serialize(bigSession) got retErr %q, want to contain %q", err.Error(), want)
+		t.Errorf("serialize(bigSession) got err %q, want to contain %q", err.Error(), want)
 	}
 }
 
