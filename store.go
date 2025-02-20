@@ -47,6 +47,7 @@ var _ sessions.Store = &Store{}
 
 type BookingIDs = []string
 
+// sessionDoc wraps an encoded session so it can be saved as a Firestore
 // document.
 type sessionDoc struct {
 	EncodedSession string
