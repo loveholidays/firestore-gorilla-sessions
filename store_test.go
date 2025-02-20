@@ -16,6 +16,8 @@ package firestoregorilla
 
 import (
 	"context"
+	"github.com/gorilla/sessions"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -144,5 +146,30 @@ func (s *Store) cleanup(name string) {
 		}
 		// Ignore errors.
 		doc.Delete(context.Background())
+	}
+}
+
+func Test_extractBookingIDs(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		session    *sessions.Session
+		bookingIDs BookingIDs
+		err        bool
+	}{
+		{
+			name:    "nil session",
+			session: nil,
+			err:     true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			bookingIDs, err := extractBookingIDs(tt.session)
+			require.Equal(t, bookingIDs, tt.bookingIDs)
+			if tt.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
 	}
 }
