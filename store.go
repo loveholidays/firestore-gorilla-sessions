@@ -45,21 +45,13 @@ type Store struct {
 
 var _ sessions.Store = &Store{}
 
-type BookingIDs = []string
-
 // sessionDoc wraps an encoded session so it can be saved as a Firestore
 // document.
 type sessionDoc struct {
 	EncodedSession string
 	Expire         time.Time
-	BookingIDs
+	BookingIDs     []string
 }
-
-const (
-	ValuesKeyData       = "data"
-	ValuesKeyExpire     = "expire"
-	ValuesKeyBookingIDs = "bookingIds"
-)
 
 // New creates a new Store.
 //
@@ -181,13 +173,13 @@ func (s *Store) readIDFromHeader(r *http.Request, name string) (string, error) {
 }
 
 // extractBookingIDs extracts any booking IDs if present and valid.
-func extractBookingIDs(session *sessions.Session) (BookingIDs, error) {
+func extractBookingIDs(session *sessions.Session) ([]string, error) {
 	if session == nil {
 		return nil, errors.New("session is nil")
 	}
-	rawBookingIDs, ok := session.Values[ValuesKeyBookingIDs]
+	rawBookingIDs, ok := session.Values["bookingIds"]
 	if ok {
-		bookingIDs, ok := rawBookingIDs.(BookingIDs)
+		bookingIDs, ok := rawBookingIDs.([]string)
 		if !ok {
 			return nil, errors.New("provided booking IDs is not a string slice")
 		}
