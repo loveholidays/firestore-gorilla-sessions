@@ -177,7 +177,7 @@ func extractBookingIDs(session *sessions.Session) ([]string, error) {
 	if session == nil {
 		return nil, errors.New("session is nil")
 	}
-	rawBookingIDs, ok := session.Values["BookingIds"]
+	rawBookingIDs, ok := session.Values["BookingIDs"]
 	if ok {
 		bookingIDs, ok := rawBookingIDs.([]string)
 		if !ok {
