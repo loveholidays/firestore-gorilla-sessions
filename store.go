@@ -181,7 +181,18 @@ func extractBookingIDs(session *sessions.Session) ([]string, error) {
 	if ok {
 		bookingIDs, ok := rawBookingIDs.([]string)
 		if !ok {
-			return nil, errors.New("provided booking IDs is not a string slice")
+			elems, ok := rawBookingIDs.([]interface{}) // when coming from a deserialized session
+			if !ok {
+				return nil, errors.New("booking IDs is not a slice")
+			}
+			bookingIDs = nil
+			for _, elem := range elems {
+				bookingID, ok := elem.(string)
+				if !ok {
+					return nil, fmt.Errorf("booking IDs contains a non-string value")
+				}
+				bookingIDs = append(bookingIDs, bookingID)
+			}
 		}
 		return bookingIDs, nil
 	}

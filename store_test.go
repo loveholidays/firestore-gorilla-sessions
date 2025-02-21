@@ -216,3 +216,47 @@ func Test_extractBookingIDs(t *testing.T) {
 		})
 	}
 }
+
+func Test_extractBookingIDsInterface(t *testing.T) {
+	t.Run("some booking IDs", func(t *testing.T) {
+		session := &sessions.Session{
+			ID: "some-session-id",
+			Values: map[interface{}]interface{}{
+				"data":       "some-data",
+				"bookingIds": []interface{}{"123456", "789012"},
+			},
+		}
+
+		bookingIDs, err := extractBookingIDs(session)
+		require.NoError(t, err)
+		require.Equal(t, []string{"123456", "789012"}, bookingIDs)
+	})
+
+	t.Run("non-string booking ID", func(t *testing.T) {
+		session := &sessions.Session{
+			ID: "some-session-id",
+			Values: map[interface{}]interface{}{
+				"data":       "some-data",
+				"bookingIds": []interface{}{"123456", 789012},
+			},
+		}
+
+		bookingIDs, err := extractBookingIDs(session)
+		require.Error(t, err)
+		require.Nil(t, bookingIDs)
+	})
+
+	t.Run("no booking IDs", func(t *testing.T) {
+		session := &sessions.Session{
+			ID: "some-session-id",
+			Values: map[interface{}]interface{}{
+				"data":       "some-data",
+				"bookingIds": []interface{}{},
+			},
+		}
+
+		bookingIDs, err := extractBookingIDs(session)
+		require.NoError(t, err)
+		require.Nil(t, bookingIDs)
+	})
+}
