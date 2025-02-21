@@ -132,6 +132,10 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 		return err
 	}
 
+	encoded := sessionDoc{
+		EncodedSession: sessionString,
+	}
+
 	expire := 0
 	for _, value := range session.Values {
 		switch v := value.(type) {
@@ -140,8 +144,8 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 		}
 	}
 
-	encoded := sessionDoc{
-		EncodedSession: sessionString,
+	if expire != 0 {
+		encoded.Expire = time.Unix(int64(expire), 10)
 	}
 
 	bookingIDs, err := extractBookingIDs(session)
@@ -150,10 +154,6 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 	}
 	if bookingIDs != nil {
 		encoded.BookingIDs = bookingIDs
-	}
-
-	if expire != 0 {
-		encoded.Expire = time.Unix(int64(expire), 10)
 	}
 
 	if _, err := s.client.Collection(session.Name()).Doc(id).Set(r.Context(), encoded); err != nil {
