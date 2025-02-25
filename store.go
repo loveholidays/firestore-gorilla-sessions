@@ -23,6 +23,7 @@ package firestoregorilla
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -49,11 +50,7 @@ var _ sessions.Store = &Store{}
 type sessionDoc struct {
 	EncodedSession string
 	Expire         time.Time
-}
-
-type sessionDocValue struct {
-	data   map[interface{}]interface{}
-	expire int
+	BookingIDs     []string
 }
 
 // New creates a new Store.
@@ -135,6 +132,10 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 		return err
 	}
 
+	encoded := sessionDoc{
+		EncodedSession: sessionString,
+	}
+
 	expire := 0
 	for _, value := range session.Values {
 		switch v := value.(type) {
@@ -143,12 +144,16 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 		}
 	}
 
-	encoded := sessionDoc{
-		EncodedSession: sessionString,
-	}
-
 	if expire != 0 {
 		encoded.Expire = time.Unix(int64(expire), 10)
+	}
+
+	bookingIDs, err := extractBookingIDs(session)
+	if err != nil {
+		return err
+	}
+	if bookingIDs != nil {
+		encoded.BookingIDs = bookingIDs
 	}
 
 	if _, err := s.client.Collection(session.Name()).Doc(id).Set(r.Context(), encoded); err != nil {
@@ -165,6 +170,33 @@ func (s *Store) readIDFromHeader(r *http.Request, name string) (string, error) {
 		return "", fmt.Errorf("Header not present: %s", name)
 	}
 	return c, nil
+}
+
+// extractBookingIDs extracts any booking IDs if present and valid.
+func extractBookingIDs(session *sessions.Session) ([]string, error) {
+	if session == nil {
+		return nil, errors.New("session is nil")
+	}
+	rawBookingIDs, ok := session.Values["bookingIds"]
+	if ok {
+		bookingIDs, ok := rawBookingIDs.([]string)
+		if !ok {
+			elems, ok := rawBookingIDs.([]interface{}) // when coming from a deserialized session
+			if !ok {
+				return nil, errors.New("booking IDs is not a slice")
+			}
+			bookingIDs = nil
+			for _, elem := range elems {
+				bookingID, ok := elem.(string)
+				if !ok {
+					return nil, fmt.Errorf("booking IDs contains a non-string value")
+				}
+				bookingIDs = append(bookingIDs, bookingID)
+			}
+		}
+		return bookingIDs, nil
+	}
+	return nil, nil
 }
 
 // jsonSession is an encoding/json compatible version of sessions.Session.

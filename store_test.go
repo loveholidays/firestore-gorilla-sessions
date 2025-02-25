@@ -25,6 +25,8 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/google/go-cmp/cmp"
+	"github.com/gorilla/sessions"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/api/iterator"
 )
 
@@ -145,4 +147,116 @@ func (s *Store) cleanup(name string) {
 		// Ignore errors.
 		doc.Delete(context.Background())
 	}
+}
+
+func Test_extractBookingIDs(t *testing.T) {
+	for _, tt := range []struct {
+		name          string
+		session       *sessions.Session
+		retBookingIDs []string
+		retErr        bool
+	}{
+		{
+			name:    "nil session",
+			session: nil,
+			retErr:  true,
+		},
+		{
+			name: "no bookings IDs returns nil",
+			session: &sessions.Session{
+				ID: "some-session-id",
+				Values: map[interface{}]interface{}{
+					"data": "some-data",
+				},
+			},
+			retBookingIDs: nil,
+		},
+		{
+			name: "empty booking IDs slice is allowed",
+			session: &sessions.Session{
+				ID: "some-session-id",
+				Values: map[interface{}]interface{}{
+					"data":       "some-data",
+					"bookingIds": []string{},
+				},
+			},
+			retBookingIDs: []string{},
+		},
+		{
+			name: "bookings IDs returned",
+			session: &sessions.Session{
+				ID: "some-session-id",
+				Values: map[interface{}]interface{}{
+					"data":       "some-data",
+					"bookingIds": []string{"123456", "789012"},
+				},
+			},
+			retBookingIDs: []string{"123456", "789012"},
+		},
+		{
+			name: "error if booking IDs incorrect type",
+			session: &sessions.Session{
+				ID: "some-session-id",
+				Values: map[interface{}]interface{}{
+					"data":       "some-data",
+					"bookingIds": 123456,
+				},
+			},
+			retErr: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			bookingIDs, err := extractBookingIDs(tt.session)
+			require.Equal(t, bookingIDs, tt.retBookingIDs)
+			if tt.retErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func Test_extractBookingIDsInterface(t *testing.T) {
+	t.Run("some booking IDs", func(t *testing.T) {
+		session := &sessions.Session{
+			ID: "some-session-id",
+			Values: map[interface{}]interface{}{
+				"data":       "some-data",
+				"bookingIds": []interface{}{"123456", "789012"},
+			},
+		}
+
+		bookingIDs, err := extractBookingIDs(session)
+		require.NoError(t, err)
+		require.Equal(t, []string{"123456", "789012"}, bookingIDs)
+	})
+
+	t.Run("non-string booking ID", func(t *testing.T) {
+		session := &sessions.Session{
+			ID: "some-session-id",
+			Values: map[interface{}]interface{}{
+				"data":       "some-data",
+				"bookingIds": []interface{}{"123456", 789012},
+			},
+		}
+
+		bookingIDs, err := extractBookingIDs(session)
+		require.Error(t, err)
+		require.Nil(t, bookingIDs)
+	})
+
+	t.Run("no booking IDs", func(t *testing.T) {
+		session := &sessions.Session{
+			ID: "some-session-id",
+			Values: map[interface{}]interface{}{
+				"data":       "some-data",
+				"bookingIds": []interface{}{},
+			},
+		}
+
+		bookingIDs, err := extractBookingIDs(session)
+		require.NoError(t, err)
+		require.Nil(t, bookingIDs)
+	})
 }
