@@ -28,6 +28,10 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestStore(t *testing.T) {
@@ -82,6 +86,70 @@ func TestStore(t *testing.T) {
 	if cachedSession.IsNew {
 		t.Errorf("New got cachedSession.IsNew=true, want false")
 	}
+}
+
+func TestFirestoreErrorsPreserveCauseAndStatus(t *testing.T) {
+	var cause error
+	conn, err := grpc.Dial("localhost:1", grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(func(context.Context, string, interface{}, interface{}, *grpc.ClientConn, grpc.UnaryInvoker, ...grpc.CallOption) error {
+			return cause
+		}),
+		grpc.WithStreamInterceptor(func(context.Context, *grpc.StreamDesc, *grpc.ClientConn, string, grpc.Streamer, ...grpc.CallOption) (grpc.ClientStream, error) {
+			return nil, cause
+		}),
+	)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	client, err := firestore.NewClient(context.Background(), "test-project", option.WithGRPCConn(conn))
+	require.NoError(t, err)
+	defer client.Close()
+
+	store, err := New(context.Background(), client)
+	require.NoError(t, err)
+
+	const name = "testname"
+	r := httptest.NewRequest("GET", "/", nil)
+	r.Header.Set(name, "session-id")
+
+	for _, code := range []codes.Code{codes.PermissionDenied, codes.Canceled} {
+		cause = status.Error(code, "Firestore request failed")
+		t.Run(code.String(), func(t *testing.T) {
+			for _, tt := range []struct {
+				name string
+				call func() error
+			}{
+				{
+					name: "Get",
+					call: func() error {
+						_, err := store.New(r, name)
+						return err
+					},
+				},
+				{
+					name: "Create",
+					call: func() error {
+						session := sessions.NewSession(store, name)
+						session.ID = "session-id"
+						return store.Save(r, httptest.NewRecorder(), session)
+					},
+				},
+			} {
+				t.Run(tt.name, func(t *testing.T) {
+					err := tt.call()
+					require.EqualError(t, err, tt.name+": "+cause.Error())
+					require.ErrorIs(t, err, cause)
+					require.Equal(t, code, status.Code(err))
+				})
+			}
+		})
+	}
+}
+
+func TestWrapFirestoreContextCancellation(t *testing.T) {
+	err := wrapFirestoreError("Get", context.Canceled)
+	require.EqualError(t, err, "Get: context canceled")
+	require.ErrorIs(t, err, context.Canceled)
 }
 
 func TestMaxLength(t *testing.T) {
