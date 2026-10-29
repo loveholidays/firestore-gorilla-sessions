@@ -96,13 +96,13 @@ func (s *Store) New(r *http.Request, name string) (*sessions.Session, error) {
 		return session, nil
 	}
 	if err != nil {
-		return session, fmt.Errorf("Get: %v", err)
+		return session, wrapFirestoreError("Get", err)
 	}
 
 	// The session was found, get it.
 	encoded := sessionDoc{}
 	if err := ds.DataTo(&encoded); err != nil {
-		return session, fmt.Errorf("DataTo: %v", err)
+		return session, fmt.Errorf("DataTo: %w", err)
 	}
 	cachedSession, err := s.deserialize(encoded.EncodedSession)
 	if err != nil {
@@ -157,10 +157,28 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 	}
 
 	if _, err := s.client.Collection(session.Name()).Doc(id).Set(r.Context(), encoded); err != nil {
-		return fmt.Errorf("Create: %v", err)
+		return wrapFirestoreError("Create", err)
 	}
 
 	return nil
+}
+
+// firestoreError keeps the gRPC status visible to status.Code, which does not
+// inspect wrapped errors in the version of gRPC used by this module.
+type firestoreError struct {
+	error
+	status *status.Status
+}
+
+func (e *firestoreError) Unwrap() error { return e.error }
+
+func (e *firestoreError) GRPCStatus() *status.Status { return e.status }
+
+func wrapFirestoreError(operation string, err error) error {
+	return &firestoreError{
+		error:  fmt.Errorf("%s: %w", operation, err),
+		status: status.Convert(err),
+	}
 }
 
 // readIDFromHeader get the ID from a header
